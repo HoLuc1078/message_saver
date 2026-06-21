@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>消息保存规则</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --surface: #f8fafc;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --input-bg: #ffffff;
+            --input-border: #cbd5e1;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-text: #4338ca;
+            --danger: #dc2626;
+            --danger-hover: #b91c1c;
+            --chip-bg: #e0e7ff;
+            --chip-text: #4338ca;
+            --chip-border: #c7d2fe;
+            --toast-success-bg: #dcfce7;
+            --toast-success-text: #166534;
+            --toast-error-bg: #fecaca;
+            --toast-error-text: #7f1d1d;
+        }
+        [data-theme="dark"] {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --border: #334155;
+            --text: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --input-bg: #0f172a;
+            --input-border: #475569;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-text: #a5b4fc;
+            --danger: #dc2626;
+            --danger-hover: #b91c1c;
+            --chip-bg: #4338ca;
+            --chip-text: #e0e7ff;
+            --chip-border: #6366f1;
+            --toast-success-bg: #166534;
+            --toast-success-text: #bbf7d0;
+            --toast-error-bg: #7f1d1d;
+            --toast-error-text: #fecaca;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 24px 16px;
+        }
+        .container { max-width: 820px; margin: 0 auto; }
+
+        /* Header */
+        .header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+        }
+        .header h1 { font-size: 1.4em; font-weight: 600; color: var(--text); }
+        .header-actions { display: flex; gap: 10px; }
+
+        .btn {
+            padding: 8px 18px; border: none; border-radius: 8px;
+            font-size: 0.9em; font-weight: 500; cursor: pointer;
+            transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-outline {
+            background: transparent; border: 1px solid var(--input-border); color: var(--text-secondary);
+        }
+        .btn-outline:hover { background: var(--surface); border-color: var(--text-muted); }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-danger:hover { background: var(--danger-hover); }
+        .btn-sm { padding: 4px 10px; font-size: 0.82em; }
+
+        /* Toast */
+        .toast {
+            position: fixed; top: 16px; right: 16px; z-index: 999;
+            padding: 12px 20px; border-radius: 8px; font-size: 0.9em;
+            animation: slideIn 0.25s ease; max-width: 380px;
+        }
+        .toast-success { background: var(--toast-success-bg); color: var(--toast-success-text); border: 1px solid currentColor; }
+        .toast-error { background: var(--toast-error-bg); color: var(--toast-error-text); border: 1px solid currentColor; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* Rule Card */
+        .rule-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+            padding: 20px; margin-bottom: 16px;
+        }
+        .rule-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .rule-title { font-size: 1em; font-weight: 600; color: var(--accent-text); }
+        .rule-body { display: flex; flex-direction: column; gap: 14px; }
+
+        /* Field */
+        .field-label {
+            font-size: 0.82em; font-weight: 500; color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+        .field-hint { font-size: 0.75em; color: var(--text-muted); margin-left: 8px; font-weight: 400; }
+
+        textarea {
+            width: 100%; padding: 10px 12px; border-radius: 8px;
+            border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text);
+            font-size: 0.88em; font-family: "Consolas", "Monaco", "Courier New", monospace;
+            resize: vertical; min-height: 42px; height: 42px;
+            transition: border-color 0.15s;
+        }
+        textarea:focus { outline: none; border-color: var(--accent); }
+        textarea::placeholder { color: var(--text-muted); }
+
+        /* Message Type Chips */
+        .chips-wrap {
+            display: flex; flex-wrap: wrap; gap: 8px;
+        }
+        .chip {
+            padding: 6px 14px; border-radius: 20px;
+            border: 1px solid var(--input-border); background: transparent;
+            color: var(--text-secondary); font-size: 0.85em; cursor: pointer;
+            transition: all 0.15s; user-select: none;
+        }
+        .chip:hover { border-color: var(--accent); color: var(--accent-text); }
+        .chip.active {
+            background: var(--chip-bg); border-color: var(--chip-border); color: var(--chip-text);
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center; padding: 48px 24px; color: var(--text-muted);
+        }
+        .empty-state p { font-size: 0.95em; }
+
+        .rule-counter { font-size: 0.85em; color: var(--text-muted); }
+
+        .toggle-label {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 0.82em; color: var(--text-secondary); cursor: pointer;
+            user-select: none;
+        }
+        .toggle-label input[type="checkbox"] {
+            accent-color: var(--accent); cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="header">
+        <h1>消息保存规则</h1>
+        <div class="header-actions">
+            <span class="rule-counter" id="ruleCounter">0 条规则</span>
+            <button class="btn btn-primary" id="btnSave" onclick="saveRules()">保存规则</button>
+        </div>
+    </div>
+
+    <div id="rulesList"></div>
+
+    <div style="margin-top: 12px;">
+        <button class="btn btn-outline" onclick="addRule()" style="width:100%; justify-content:center;">
+            + 添加规则
+        </button>
+    </div>
+
+</div>
+
+<script src="/api/plugin/page/bridge-sdk.js"></script>
+<script>
+// ==================== Bridge SDK ====================
+const bridge = window.AstrBotPluginPage;
+let _ctx = null;
+
+const MSG_TYPES = [
+    { key: "Plain",  label: "文本" },
+    { key: "Image",  label: "图片" },
+    { key: "Record", label: "语音" },
+    { key: "Video",  label: "视频" },
+    { key: "At",     label: "@提及" },
+    { key: "Reply",  label: "引用回复" },
+    { key: "Poke",   label: "戳一戳" },
+    { key: "Node",   label: "合并转发" },
+    { key: "File",   label: "文件" },
+    { key: "Face",   label: "表情" },
+];
+
+let rules = [];
+
+// ==================== Init ====================
+(async function init() {
+    _ctx = await bridge.ready();
+    await loadRules();
+    render();
+})();
+
+async function loadRules() {
+    try {
+        // bridge 自动解包 {status:"ok", data: value} → value
+        const data = await bridge.apiGet("rules");
+        rules = Array.isArray(data) ? data : [];
+    } catch (e) {
+        console.error("加载规则失败", e);
+        rules = [];
+    }
+}
+
+async function saveRules() {
+    const btn = document.getElementById("btnSave");
+    btn.disabled = true;
+    btn.textContent = "保存中...";
+
+    // 收集页面数据 → rules
+    rules = collectRules();
+
+    try {
+        const res = await bridge.apiPost("rules", { rules });
+        // POST 返回普通 JSON {status, message}，bridge 不解包
+        showToast((res && res.message) || "已保存", "success");
+    } catch (e) {
+        console.error("保存失败", e);
+        showToast("保存失败: " + e.message, "error");
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "保存规则";
+    }
+}
+
+function collectRules() {
+    const cards = document.querySelectorAll(".rule-card");
+    const result = [];
+    cards.forEach(card => {
+        const senderText = card.querySelector(".field-sender").value.trim();
+        const sessionText = card.querySelector(".field-session").value.trim();
+        const chips = card.querySelectorAll(".chip.active");
+        const stopBox = card.querySelector(".field-stop");
+        result.push({
+            sender_ids: parseIdList(senderText),
+            session_ids: parseIdList(sessionText),
+            message_types: Array.from(chips).map(c => c.dataset.type),
+            stop_propagation: stopBox ? stopBox.checked : false,
+        });
+    });
+    // 不去重，保留所有规则
+    return result;
+}
+
+function parseIdList(text) {
+    if (!text) return [];
+    // 支持逗号、换行、空格分隔
+    return text.split(/[,\n]+/).map(s => s.trim()).filter(Boolean);
+}
+
+function formatIdList(ids) {
+    if (!ids || ids.length === 0) return "";
+    return ids.join("\n");
+}
+
+// ==================== Render ====================
+function render() {
+    const container = document.getElementById("rulesList");
+    document.getElementById("ruleCounter").textContent = `${rules.length} 条规则`;
+
+    if (rules.length === 0) {
+        container.innerHTML = `<div class="empty-state"><p>暂无规则，点击下方按钮添加</p></div>`;
+        return;
+    }
+
+    container.innerHTML = rules.map((rule, i) => `
+        <div class="rule-card" data-index="${i}">
+            <div class="rule-header">
+                <span class="rule-title">规则 #${i + 1}</span>
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <label class="toggle-label">
+                        <input type="checkbox" class="field-stop" onchange="toggleStop(this)"
+                               ${rule.stop_propagation ? 'checked' : ''}>
+                        <span class="toggle-text">阻止传播</span>
+                    </label>
+                    <button class="btn btn-danger btn-sm" onclick="deleteRule(${i})">删除</button>
+                </div>
+            </div>
+            <div class="rule-body">
+                <div>
+                    <div class="field-label">发送人 ID<span class="field-hint">留空=匹配所有人</span></div>
+                    <textarea class="field-sender" placeholder="每行一个 ID，或逗号分隔">${formatIdList(rule.sender_ids || [])}</textarea>
+                </div>
+                <div>
+                    <div class="field-label">会话 ID<span class="field-hint">留空=匹配所有会话</span></div>
+                    <textarea class="field-session" placeholder="每行一个 ID，或逗号分隔">${formatIdList(rule.session_ids || [])}</textarea>
+                </div>
+                <div>
+                    <div class="field-label">消息类型<span class="field-hint">留空=匹配所有类型</span></div>
+                    <div class="chips-wrap">
+                        ${MSG_TYPES.map(t => {
+                            const active = (rule.message_types || []).includes(t.key);
+                            return `<span class="chip${active ? ' active' : ''}" data-type="${t.key}" onclick="toggleChip(this)">${t.label}</span>`;
+                        }).join("")}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join("");
+}
+
+// ==================== Actions ====================
+function addRule() {
+    rules.push({
+        sender_ids: [],
+        session_ids: [],
+        message_types: [],
+        stop_propagation: false,
+    });
+    render();
+}
+
+function toggleStop(el) {
+    // checkbox 自身的 checked 状态已由浏览器更新，无需额外处理
+    // 这里仅作为事件处理占位，数据在 collectRules 时统一收集
+}
+
+function deleteRule(index) {
+    rules.splice(index, 1);
+    render();
+}
+
+function toggleChip(el) {
+    el.classList.toggle("active");
+}
+
+// ==================== Toast ====================
+function showToast(msg, type) {
+    const existing = document.querySelector(".toast");
+    if (existing) existing.remove();
+
+    const el = document.createElement("div");
+    el.className = `toast toast-${type}`;
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2500);
+}
+</script>
+</body>
+</html>

@@ -1,14 +1,132 @@
-# astrbot-plugin-helloworld
+# 消息保存器 (message_saver)
 
-AstrBot 插件模板 / A template plugin for AstrBot plugin feature
+按条件过滤并保存聊天消息到本地的 AstrBot 插件。
 
-> [!NOTE]
-> This repo is just a template of [AstrBot](https://github.com/AstrBotDevs/AstrBot) Plugin.
-> 
-> [AstrBot](https://github.com/AstrBotDevs/AstrBot) is an agentic assistant for both personal and group conversations. It can be deployed across dozens of mainstream instant messaging platforms, including QQ, Telegram, Feishu, DingTalk, Slack, LINE, Discord, Matrix, etc. In addition, it provides a reliable and extensible conversational AI infrastructure for individuals, developers, and teams. Whether you need a personal AI companion, an intelligent customer support agent, an automation assistant, or an enterprise knowledge base, AstrBot enables you to quickly build AI applications directly within your existing messaging workflows.
+## 功能
 
-# Supports
+- 监听所有消息（群聊 + 私聊），按规则过滤后保存到本地
+- 支持按 **发送人 ID**、**会话 ID**、**消息类型** 三个维度组合过滤
+- 支持 **多条规则**，规则之间为"或"关系
+- 支持的消息类型：文本、图片、语音、视频、@提及、引用回复、戳一戳、合并转发、文件、表情
+- 文本消息保存为 `content.txt`，图片/语音/视频/文件自动下载到本地
+- 每条消息附带完整元数据 JSON（发送人、群组、时间戳等）
+- 通过 WebUI 插件 Page 可视化管理规则，无需编辑配置文件
 
-- [AstrBot Repo](https://github.com/AstrBotDevs/AstrBot)
-- [AstrBot Plugin Development Docs (Chinese)](https://docs.astrbot.app/dev/star/plugin-new.html)
-- [AstrBot Plugin Development Docs (English)](https://docs.astrbot.app/en/dev/star/plugin-new.html)
+## 安装
+
+### 依赖
+
+- Python >= 3.10
+- AstrBot >= 4.0
+- aiohttp
+
+### 方式一：插件市场安装
+
+在 AstrBot WebUI 的插件市场中搜索 `message_saver` 并安装。
+
+### 方式二：手动安装
+
+```bash
+cd AstrBot/data/plugins
+git clone https://github.com/HoLuc1078/DL-Pic-In-Group.git
+pip install -r DL-Pic-In-Group/requirements.txt
+```
+
+然后在 WebUI 中启用插件。
+
+## 使用说明
+
+### 1. 打开规则管理页面
+
+1. 启动 AstrBot 并进入 WebUI
+2. 点击左侧「插件」菜单
+3. 找到「消息保存器」插件卡片，点击进入插件详情
+4. 在 Pages 区域点击「monitor-rules」打开规则管理页
+
+### 2. 创建规则
+
+每条规则包含四个配置项，均为可选项：
+
+| 条件 | 说明 | 留空行为 |
+|---|---|---|
+| 发送人 ID | 发送消息的用户 ID | 匹配所有发送人 |
+| 会话 ID | 群聊 ID 或私聊会话 ID | 匹配所有会话 |
+| 消息类型 | 勾选要保存的消息类型 | 匹配所有类型 |
+| 阻止传播 | 保存后调用 `stop_event()` 阻止事件继续传播 | 不阻止，消息正常到达 AI |
+
+**规则匹配逻辑：**
+- 规则之间：**或**（命中任意一条即保存）
+- 规则内部四个条件：**且**（需全部满足）
+- 四个条件全空的规则 = 保存所有消息
+- **阻止传播**：勾选后，保存消息的同时会调用 `event.stop_event()` 阻止消息继续传递给 AI，实现"只保存不回复"
+
+**示例：**
+
+> 场景：保存群 123456 中所有图片和视频
+
+| 条件 | 值 |
+|---|---|
+| 发送人 ID | （留空） |
+| 会话 ID | 123456 |
+| 消息类型 | 图片、视频 |
+
+> 场景：保存用户 A 发送的所有语音消息
+
+| 条件 | 值 |
+|---|---|
+| 发送人 ID | user_a_id |
+| 会话 ID | （留空） |
+| 消息类型 | 语音 |
+
+### 3. 保存规则
+
+点击页面右上角的「保存规则」按钮即可。**不会去重**，按你填写的原始规则存储。
+
+### 4. 关于"会话 ID"
+
+- 群聊消息：`会话 ID` = 群号（可通过调试日志查看）
+- 私聊消息：`会话 ID` = `unified_msg_origin`（平台适配器生成的唯一标识）
+
+如果不确定具体的会话 ID，可以先创建一个全匹配的规则保存几条消息，然后查看消息的 `metadata.json` 中 `session_id` 字段确认。
+
+## 存储结构
+
+消息保存在 `data/plugin_data/message_saver/` 目录下：
+
+```
+data/plugin_data/message_saver/
+├── rules.json                   # 规则配置
+└── 2026-06-21/                  # 按日期分组
+    └── 143052_000123_a1b2c3d4/  # 时间_消息ID哈希
+        ├── metadata.json        # 消息元数据
+        ├── content.txt          # 文本内容（如有）
+        ├── media_0.jpg          # 图片（如有）
+        └── media_1.mp3          # 语音（如有）
+```
+
+### metadata.json 字段
+
+```json
+{
+  "message_id": "消息唯一ID",
+  "sender_id": "发送人ID",
+  "sender_name": "发送人名称",
+  "group_id": "群组ID（私聊为空）",
+  "session_id": "会话唯一标识",
+  "timestamp": "2026-06-21T14:30:52.123456",
+  "message_types": ["Image", "Plain"],
+  "message_str": "消息纯文本内容"
+}
+```
+
+## 注意事项
+
+- 媒体文件（图片/语音/视频/文件）通过 `aiohttp` 异步下载，下载失败不会中断其他文件的保存
+- 插件更新或重装不会覆盖已保存的消息数据（数据存储在 `data/plugin_data/` 下）
+- 规则文件路径：`data/plugin_data/message_saver/rules.json`，可手动备份
+- 如果消息量很大，建议设置明确的过滤规则避免占用过多磁盘空间
+- **关于白名单**：如果日志提示「会话 ID xxx 不在会话白名单中」，需要在 AstrBot WebUI → 配置 → `id_whitelist` 中添加该会话 ID。添加后消息会到达插件，如需阻止消息继续传给 AI，请勾选规则的「阻止传播」选项
+
+## 许可证
+
+MIT License
