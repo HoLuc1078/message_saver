@@ -100,8 +100,9 @@ class MessageSaver(Star):
         ts_str = now.strftime("%H%M%S_%f")
         id_slug = hashlib.md5((message_id or str(uuid.uuid4())).encode()).hexdigest()[:8]
 
-        sub_dir = os.path.join(self.save_dir, date_str, f"{ts_str}_{id_slug}")
-        os.makedirs(sub_dir, exist_ok=True)
+        date_dir = os.path.join(self.save_dir, date_str)
+        os.makedirs(date_dir, exist_ok=True)
+        prefix = f"{ts_str}_{id_slug}"
 
         metadata = {
             "message_id": message_id,
@@ -113,13 +114,13 @@ class MessageSaver(Star):
             "message_types": sorted(msg_types),
             "message_str": event.message_str,
         }
-        with open(os.path.join(sub_dir, "metadata.json"), "w", encoding="utf-8") as f:
+        with open(os.path.join(date_dir, f"{prefix}_metadata.json"), "w", encoding="utf-8") as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
 
         # 文本内容
         for comp in message_chain:
             if isinstance(comp, Plain) and comp.text and comp.text.strip():
-                with open(os.path.join(sub_dir, "content.txt"), "w", encoding="utf-8") as f:
+                with open(os.path.join(date_dir, f"{prefix}_content.txt"), "w", encoding="utf-8") as f:
                     f.write(comp.text)
                 break
 
@@ -132,11 +133,11 @@ class MessageSaver(Star):
                     logger.warning(f"[MessageSaver] 无法获取媒体URL, comp 属性: {[a for a in dir(comp) if not a.startswith('_')]}")
                     continue
                 ext = _guess_extension(media_url, comp)
-                filepath = os.path.join(sub_dir, f"media_{idx}{ext}")
+                filepath = os.path.join(date_dir, f"{prefix}_media_{idx}{ext}")
                 await _download(media_url, filepath)
                 idx += 1
 
-        logger.info(f"[MessageSaver] 已保存消息到: {sub_dir}")
+        logger.info(f"[MessageSaver] 已保存消息: {date_dir}/{prefix}_*")
 
 
 # ==================== 工具函数 ====================

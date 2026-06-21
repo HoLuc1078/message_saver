@@ -95,13 +95,12 @@ pip install -r DL-Pic-In-Group/requirements.txt
 
 ```
 data/plugin_data/message_saver/
-├── rules.json                   # 规则配置
-└── 2026-06-21/                  # 按日期分组
-    └── 143052_000123_a1b2c3d4/  # 时间_消息ID哈希
-        ├── metadata.json        # 消息元数据
-        ├── content.txt          # 文本内容（如有）
-        ├── media_0.jpg          # 图片（如有）
-        └── media_1.mp3          # 语音（如有）
+├── rules.json                          # 规则配置
+└── 2026-06-21/                         # 按日期分组
+    ├── 143052_000123_a1b2c3d4_metadata.json   # 消息元数据
+    ├── 143052_000123_a1b2c3d4_content.txt     # 文本内容（如有）
+    ├── 143052_000123_a1b2c3d4_media_0.jpg     # 图片（如有）
+    └── 143052_000123_a1b2c3d4_media_1.mp3     # 语音（如有）
 ```
 
 ### metadata.json 字段

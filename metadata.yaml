@@ -1,6 +1,6 @@
 name: message_saver
 display_name: 消息保存器
 desc: 按消息ID、发送人、消息类型等条件过滤并保存消息到本地存储
-version: v1.0.0
+version: v1.0.1
 author: HoLuc1078
-repo: https://github.com/HoLuc1078/DL-Pic-In-Group
+repo: https://github.com/HoLuc1078/message_saver
